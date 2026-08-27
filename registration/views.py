@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Student
 from .forms import StudentForm
+from django.db.models import Count
 
 def student_list(request):
     students = Student.objects.all()
@@ -36,3 +37,31 @@ def student_delete(request, pk):
         student.delete()
         return redirect('student_list')
     return render(request, 'registration/student_confirm_delete.html', {'student': student})
+
+def student_dashboard(request):
+    students = Student.objects.all()
+    total_students = students.count()
+
+    program_summary = (
+        students
+        .values('program')
+        .annotate(total=Count('id'))
+        .order_by('program')
+    )
+
+    year_summary = (
+        students
+        .values('year_level')
+        .annotate(total=Count('id'))
+        .order_by('year_level')
+    )
+
+    return render(
+        request,
+        'registration/student_dashboard.html',
+        {
+            'total_students': total_students,
+            'program_summary': program_summary,
+            'year_summary': year_summary,
+        }
+    )
