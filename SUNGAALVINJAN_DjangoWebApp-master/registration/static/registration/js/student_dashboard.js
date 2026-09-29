@@ -1,14 +1,8 @@
 let allStudents = [];
 
-const searchInput = document.getElementById("student-search");
-const programFilter = document.getElementById("program-filter");
-const clearButton = document.getElementById("clear-filters");
-const refreshButton = document.getElementById("refresh-students");
-const resultCount = document.getElementById("result-count");
-const loadingMessage = document.getElementById("loading-message");
-const errorMessage = document.getElementById("error-message");
-const studentCount = document.getElementById("student-count");
-const tableBody = document.getElementById("student-table-body");
+// Element variables declared globally so all functions can access them
+let searchInput, programFilter, clearButton, refreshButton;
+let resultCount, loadingMessage, errorMessage, studentCount, tableBody;
 
 async function loadStudents() {
     loadingMessage.textContent = "Loading students...";
@@ -26,8 +20,8 @@ async function loadStudents() {
         }
 
         const data = await response.json();
-        allStudents = data.students;
-        studentCount.textContent = data.count;
+        allStudents = data.students || [];
+        studentCount.textContent = data.count || allStudents.length;
 
         populateProgramFilter();
         renderStudents();
@@ -71,7 +65,8 @@ function renderStudents() {
     const selectedProgram = programFilter.value;
 
     const filteredStudents = allStudents.filter(student => {
-        const name = (student.student_name || "").toLowerCase();
+        // Handles both `student_name` or `first_name`/`last_name` fields
+        const name = (student.student_name || `${student.first_name || ''} ${student.last_name || ''}`).toLowerCase();
         const email = (student.email || "").toLowerCase();
 
         const matchesSearch = name.includes(searchTerm) || email.includes(searchTerm);
@@ -94,7 +89,7 @@ function renderStudents() {
             const row = document.createElement("tr");
             [
                 student.id,
-                student.student_name,
+                student.student_name || `${student.first_name || ''} ${student.last_name || ''}`,
                 student.program,
                 student.year_level,
                 student.email
@@ -110,17 +105,32 @@ function renderStudents() {
     resultCount.textContent = `Showing ${filteredStudents.length} of ${allStudents.length} students`;
 }
 
-// Event Listeners
-searchInput.addEventListener("input", renderStudents);
-programFilter.addEventListener("change", renderStudents);
+// Ensure elements exist before binding listeners
+document.addEventListener("DOMContentLoaded", () => {
+    searchInput = document.getElementById("student-search");
+    programFilter = document.getElementById("program-filter");
+    clearButton = document.getElementById("clear-filters");
+    refreshButton = document.getElementById("refresh-students");
+    resultCount = document.getElementById("result-count");
+    loadingMessage = document.getElementById("loading-message");
+    errorMessage = document.getElementById("error-message");
+    studentCount = document.getElementById("student-count");
+    tableBody = document.getElementById("student-table-body");
 
-clearButton.addEventListener("click", () => {
-    searchInput.value = "";
-    programFilter.value = "";
-    renderStudents();
+    // Event Listeners
+    if (searchInput) searchInput.addEventListener("input", renderStudents);
+    if (programFilter) programFilter.addEventListener("change", renderStudents);
+
+    if (clearButton) {
+        clearButton.addEventListener("click", () => {
+            searchInput.value = "";
+            programFilter.value = "";
+            renderStudents();
+        });
+    }
+
+    if (refreshButton) refreshButton.addEventListener("click", loadStudents);
+
+    // Initial Execution
+    loadStudents();
 });
-
-refreshButton.addEventListener("click", loadStudents);
-
-// Initial Execution
-loadStudents();
