@@ -64,3 +64,40 @@ class StudentAdminTests(TestCase):
         self.assertFalse(
             Student.objects.filter(student_name="Invalid Email Student").exists()
         )
+
+
+class StudentApiTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="api-user",
+            password="test-password",
+        )
+        self.student = Student.objects.create(
+            student_name="API Test Student",
+            program="Computer Science",
+            year_level=2,
+            email="api-student@example.com",
+        )
+
+    def test_student_api_requires_authentication(self):
+        response = self.client.get(reverse("api_student_list"))
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(), {"error": "Authentication required."})
+
+    def test_authenticated_student_api_returns_database_records(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("api_student_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "count": 1,
+            "students": [{
+                "id": self.student.pk,
+                "student_name": "API Test Student",
+                "program": "Computer Science",
+                "year_level": 2,
+                "email": "api-student@example.com",
+            }],
+        })
